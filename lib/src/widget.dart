@@ -136,7 +136,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// The [data] argument must not be null.
   const MarkdownWidget({
     Key? key,
-    required this.data,
+    this.data,
+    this.nodes,
     this.selectable = false,
     this.styleSheet,
     this.styleSheetTheme = MarkdownStyleSheetBaseTheme.material,
@@ -154,11 +155,14 @@ abstract class MarkdownWidget extends StatefulWidget {
     this.fitContent = false,
     this.listItemCrossAxisAlignment =
         MarkdownListItemCrossAxisAlignment.baseline,
-  }) : super(key: key);
+  })  : assert(data != null || nodes != null),
+        assert(selectable != null),
+        super(key: key);
 
   /// The Markdown to display.
-  final String data;
+  final String? data;
 
+  final List<md.Node>? nodes;
   /// If true, the text is selectable.
   ///
   /// Defaults to false.
@@ -268,22 +272,14 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
 
   void _parseMarkdown() {
     final MarkdownStyleSheet fallbackStyleSheet =
-        kFallbackStyle(context, widget.styleSheetTheme);
+    kFallbackStyle(context, widget.styleSheetTheme);
     final MarkdownStyleSheet styleSheet =
-        fallbackStyleSheet.merge(widget.styleSheet);
+    fallbackStyleSheet.merge(widget.styleSheet);
 
     _disposeRecognizers();
 
-    final md.Document document = md.Document(
-      blockSyntaxes: widget.blockSyntaxes,
-      inlineSyntaxes: (widget.inlineSyntaxes ?? [])..add(TaskListSyntax()),
-      extensionSet: widget.extensionSet ?? md.ExtensionSet.gitHubFlavored,
-      encodeHtml: false,
-    );
-
-    // Parse the source Markdown data into nodes of an Abstract Syntax Tree.
-    final List<String> lines = LineSplitter().convert(widget.data);
-    final List<md.Node> astNodes = document.parseLines(lines);
+    final List<md.Node>? nodes =
+    widget.data != null ? _getMarkdownNodes(widget.data!) : widget.nodes;
 
     // Configure a Markdown widget builder to traverse the AST nodes and
     // create a widget tree based on the elements.
@@ -301,13 +297,23 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
       onTapText: widget.onTapText,
     );
 
-    _children = builder.build(astNodes);
+    _children = builder.build(nodes!);
+  }
+
+  List<md.Node>? _getMarkdownNodes(String data) {
+    final List<String> lines = data.split(RegExp(r'\r?\n'));
+    final md.Document document = md.Document(
+      extensionSet: widget.extensionSet ?? md.ExtensionSet.gitHubFlavored,
+      inlineSyntaxes: [TaskListSyntax()],
+      encodeHtml: false,
+    );
+    return document.parseLines(lines);
   }
 
   void _disposeRecognizers() {
     if (_recognizers.isEmpty) return;
     final List<GestureRecognizer> localRecognizers =
-        List<GestureRecognizer>.from(_recognizers);
+    List<GestureRecognizer>.from(_recognizers);
     _recognizers.clear();
     for (GestureRecognizer recognizer in localRecognizers) recognizer.dispose();
   }
@@ -350,7 +356,8 @@ class MarkdownBody extends MarkdownWidget {
   /// Creates a non-scrolling widget that parses and displays Markdown.
   const MarkdownBody({
     Key? key,
-    required String data,
+    String? data,
+    List<md.Node>? nodes,
     bool selectable = false,
     MarkdownStyleSheet? styleSheet,
     MarkdownStyleSheetBaseTheme? styleSheetTheme,
@@ -370,24 +377,25 @@ class MarkdownBody extends MarkdownWidget {
     this.shrinkWrap = true,
     this.fitContent = true,
   }) : super(
-          key: key,
-          data: data,
-          selectable: selectable,
-          styleSheet: styleSheet,
-          styleSheetTheme: styleSheetTheme,
-          syntaxHighlighter: syntaxHighlighter,
-          onTapLink: onTapLink,
-          onTapText: onTapText,
-          imageDirectory: imageDirectory,
-          blockSyntaxes: blockSyntaxes,
-          inlineSyntaxes: inlineSyntaxes,
-          extensionSet: extensionSet,
-          imageBuilder: imageBuilder,
-          checkboxBuilder: checkboxBuilder,
-          builders: builders,
-          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-          bulletBuilder: bulletBuilder,
-        );
+    key: key,
+    data: data,
+    nodes:nodes,
+    selectable: selectable,
+    styleSheet: styleSheet,
+    styleSheetTheme: styleSheetTheme,
+    syntaxHighlighter: syntaxHighlighter,
+    onTapLink: onTapLink,
+    onTapText: onTapText,
+    imageDirectory: imageDirectory,
+    blockSyntaxes: blockSyntaxes,
+    inlineSyntaxes: inlineSyntaxes,
+    extensionSet: extensionSet,
+    imageBuilder: imageBuilder,
+    checkboxBuilder: checkboxBuilder,
+    builders: builders,
+    listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+    bulletBuilder: bulletBuilder,
+  );
 
   /// See [ScrollView.shrinkWrap]
   final bool shrinkWrap;
@@ -401,7 +409,7 @@ class MarkdownBody extends MarkdownWidget {
     return Column(
       mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
       crossAxisAlignment:
-          fitContent ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
+      fitContent ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
       children: children,
     );
   }
@@ -420,7 +428,8 @@ class Markdown extends MarkdownWidget {
   /// Creates a scrolling widget that parses and displays Markdown.
   const Markdown({
     Key? key,
-    required String data,
+    String? data,
+    List<md.Node>? nodes,
     bool selectable = false,
     MarkdownStyleSheet? styleSheet,
     MarkdownStyleSheetBaseTheme? styleSheetTheme,
@@ -441,25 +450,27 @@ class Markdown extends MarkdownWidget {
     this.controller,
     this.physics,
     this.shrinkWrap = false,
+    this.alignment,
   }) : super(
-          key: key,
-          data: data,
-          selectable: selectable,
-          styleSheet: styleSheet,
-          styleSheetTheme: styleSheetTheme,
-          syntaxHighlighter: syntaxHighlighter,
-          onTapLink: onTapLink,
-          onTapText: onTapText,
-          imageDirectory: imageDirectory,
-          blockSyntaxes: blockSyntaxes,
-          inlineSyntaxes: inlineSyntaxes,
-          extensionSet: extensionSet,
-          imageBuilder: imageBuilder,
-          checkboxBuilder: checkboxBuilder,
-          builders: builders,
-          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-          bulletBuilder: bulletBuilder,
-        );
+    key: key,
+    data: data,
+    nodes: nodes,
+    selectable: selectable,
+    styleSheet: styleSheet,
+    styleSheetTheme: styleSheetTheme,
+    syntaxHighlighter: syntaxHighlighter,
+    onTapLink: onTapLink,
+    onTapText: onTapText,
+    imageDirectory: imageDirectory,
+    blockSyntaxes: blockSyntaxes,
+    inlineSyntaxes: inlineSyntaxes,
+    extensionSet: extensionSet,
+    imageBuilder: imageBuilder,
+    checkboxBuilder: checkboxBuilder,
+    builders: builders,
+    listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+    bulletBuilder: bulletBuilder,
+  );
 
   /// The amount of space by which to inset the children.
   final EdgeInsets padding;
@@ -480,14 +491,23 @@ class Markdown extends MarkdownWidget {
   /// See also: [ScrollView.shrinkWrap]
   final bool shrinkWrap;
 
+  final MainAxisAlignment? alignment;
+
+  bool get _reverse => alignment == MainAxisAlignment.end;
+
   @override
   Widget build(BuildContext context, List<Widget>? children) {
-    return ListView(
+    if (children!.length == 1) return children.single;
+    return ListView.builder(
       padding: padding,
       controller: controller,
       physics: physics,
       shrinkWrap: shrinkWrap,
-      children: children!,
+      reverse: _reverse,
+      itemCount: children.length,
+      itemBuilder: (BuildContext context, int index) {
+        return children[_reverse ? children.length - 1 - index : index];
+      },
     );
   }
 }
