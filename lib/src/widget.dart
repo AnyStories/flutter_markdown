@@ -272,9 +272,9 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
 
   void _parseMarkdown() {
     final MarkdownStyleSheet fallbackStyleSheet =
-    kFallbackStyle(context, widget.styleSheetTheme);
+        kFallbackStyle(context, widget.styleSheetTheme);
     final MarkdownStyleSheet styleSheet =
-    fallbackStyleSheet.merge(widget.styleSheet);
+        fallbackStyleSheet.merge(widget.styleSheet);
 
     _disposeRecognizers();
 
@@ -313,7 +313,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
   void _disposeRecognizers() {
     if (_recognizers.isEmpty) return;
     final List<GestureRecognizer> localRecognizers =
-    List<GestureRecognizer>.from(_recognizers);
+        List<GestureRecognizer>.from(_recognizers);
     _recognizers.clear();
     for (GestureRecognizer recognizer in localRecognizers) recognizer.dispose();
   }
@@ -377,25 +377,25 @@ class MarkdownBody extends MarkdownWidget {
     this.shrinkWrap = true,
     this.fitContent = true,
   }) : super(
-    key: key,
-    data: data,
-    nodes:nodes,
-    selectable: selectable,
-    styleSheet: styleSheet,
-    styleSheetTheme: styleSheetTheme,
-    syntaxHighlighter: syntaxHighlighter,
-    onTapLink: onTapLink,
-    onTapText: onTapText,
-    imageDirectory: imageDirectory,
-    blockSyntaxes: blockSyntaxes,
-    inlineSyntaxes: inlineSyntaxes,
-    extensionSet: extensionSet,
-    imageBuilder: imageBuilder,
-    checkboxBuilder: checkboxBuilder,
-    builders: builders,
-    listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-    bulletBuilder: bulletBuilder,
-  );
+          key: key,
+          data: data,
+          nodes:nodes,
+          selectable: selectable,
+          styleSheet: styleSheet,
+          styleSheetTheme: styleSheetTheme,
+          syntaxHighlighter: syntaxHighlighter,
+          onTapLink: onTapLink,
+          onTapText: onTapText,
+          imageDirectory: imageDirectory,
+          blockSyntaxes: blockSyntaxes,
+          inlineSyntaxes: inlineSyntaxes,
+          extensionSet: extensionSet,
+          imageBuilder: imageBuilder,
+          checkboxBuilder: checkboxBuilder,
+          builders: builders,
+          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+          bulletBuilder: bulletBuilder,
+        );
 
   /// See [ScrollView.shrinkWrap]
   final bool shrinkWrap;
@@ -409,7 +409,7 @@ class MarkdownBody extends MarkdownWidget {
     return Column(
       mainAxisSize: shrinkWrap ? MainAxisSize.min : MainAxisSize.max,
       crossAxisAlignment:
-      fitContent ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
+          fitContent ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
       children: children,
     );
   }
@@ -452,25 +452,25 @@ class Markdown extends MarkdownWidget {
     this.shrinkWrap = false,
     this.alignment,
   }) : super(
-    key: key,
-    data: data,
-    nodes: nodes,
-    selectable: selectable,
-    styleSheet: styleSheet,
-    styleSheetTheme: styleSheetTheme,
-    syntaxHighlighter: syntaxHighlighter,
-    onTapLink: onTapLink,
-    onTapText: onTapText,
-    imageDirectory: imageDirectory,
-    blockSyntaxes: blockSyntaxes,
-    inlineSyntaxes: inlineSyntaxes,
-    extensionSet: extensionSet,
-    imageBuilder: imageBuilder,
-    checkboxBuilder: checkboxBuilder,
-    builders: builders,
-    listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-    bulletBuilder: bulletBuilder,
-  );
+          key: key,
+          data: data,
+          nodes: nodes,
+          selectable: selectable,
+          styleSheet: styleSheet,
+          styleSheetTheme: styleSheetTheme,
+          syntaxHighlighter: syntaxHighlighter,
+          onTapLink: onTapLink,
+          onTapText: onTapText,
+          imageDirectory: imageDirectory,
+          blockSyntaxes: blockSyntaxes,
+          inlineSyntaxes: inlineSyntaxes,
+          extensionSet: extensionSet,
+          imageBuilder: imageBuilder,
+          checkboxBuilder: checkboxBuilder,
+          builders: builders,
+          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+          bulletBuilder: bulletBuilder,
+        );
 
   /// The amount of space by which to inset the children.
   final EdgeInsets padding;
@@ -498,17 +498,17 @@ class Markdown extends MarkdownWidget {
   @override
   Widget build(BuildContext context, List<Widget>? children) {
     if (children!.length == 1) return children.single;
-    return ListView.builder(
-      padding: padding,
-      controller: controller,
-      physics: physics,
-      shrinkWrap: shrinkWrap,
-      reverse: _reverse,
-      itemCount: children.length,
-      itemBuilder: (BuildContext context, int index) {
-        return children[_reverse ? children.length - 1 - index : index];
-      },
-    );
+      return ListView.builder(
+        padding: padding,
+        controller: controller,
+        physics: physics,
+        shrinkWrap: shrinkWrap,
+        reverse: _reverse,
+        itemCount: children.length,
+        itemBuilder: (BuildContext context, int index) {
+          return children[_reverse ? children.length - 1 - index : index];
+        },
+      );
   }
 }
 
