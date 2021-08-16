@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-import 'dart:convert';
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -153,6 +151,7 @@ abstract class MarkdownWidget extends StatefulWidget {
     this.bulletBuilder,
     this.builders = const {},
     this.fitContent = false,
+    this.bottomView,
     this.listItemCrossAxisAlignment =
         MarkdownListItemCrossAxisAlignment.baseline,
   })  : assert(data != null || nodes != null),
@@ -163,6 +162,10 @@ abstract class MarkdownWidget extends StatefulWidget {
   final String? data;
 
   final List<md.Node>? nodes;
+
+  //底部点赞和分享的视图
+  final Widget? bottomView;
+
   /// If true, the text is selectable.
   ///
   /// Defaults to false.
@@ -279,7 +282,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
     _disposeRecognizers();
 
     final List<md.Node>? nodes =
-    widget.data != null ? _getMarkdownNodes(widget.data!) : widget.nodes;
+        widget.data != null ? _getMarkdownNodes(widget.data!) : widget.nodes;
 
     // Configure a Markdown widget builder to traverse the AST nodes and
     // create a widget tree based on the elements.
@@ -298,6 +301,9 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
     );
 
     _children = builder.build(nodes!);
+    if (_children != null && widget.bottomView != null) {
+      _children!.add(widget.bottomView!);
+    }
   }
 
   List<md.Node>? _getMarkdownNodes(String data) {
@@ -379,7 +385,7 @@ class MarkdownBody extends MarkdownWidget {
   }) : super(
           key: key,
           data: data,
-          nodes:nodes,
+          nodes: nodes,
           selectable: selectable,
           styleSheet: styleSheet,
           styleSheetTheme: styleSheetTheme,
@@ -426,54 +432,57 @@ class MarkdownBody extends MarkdownWidget {
 ///  * <https://github.github.com/gfm/>
 class Markdown extends MarkdownWidget {
   /// Creates a scrolling widget that parses and displays Markdown.
-  const Markdown({
-    Key? key,
-    String? data,
-    List<md.Node>? nodes,
-    bool selectable = false,
-    MarkdownStyleSheet? styleSheet,
-    MarkdownStyleSheetBaseTheme? styleSheetTheme,
-    SyntaxHighlighter? syntaxHighlighter,
-    MarkdownTapLinkCallback? onTapLink,
-    VoidCallback? onTapText,
-    String? imageDirectory,
-    List<md.BlockSyntax>? blockSyntaxes,
-    List<md.InlineSyntax>? inlineSyntaxes,
-    md.ExtensionSet? extensionSet,
-    MarkdownImageBuilder? imageBuilder,
-    MarkdownCheckboxBuilder? checkboxBuilder,
-    MarkdownBulletBuilder? bulletBuilder,
-    Map<String, MarkdownElementBuilder> builders = const {},
-    MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
-        MarkdownListItemCrossAxisAlignment.baseline,
-    this.padding = const EdgeInsets.all(16.0),
-    this.controller,
-    this.physics,
-    this.shrinkWrap = false,
-    this.alignment,
-  }) : super(
-          key: key,
-          data: data,
-          nodes: nodes,
-          selectable: selectable,
-          styleSheet: styleSheet,
-          styleSheetTheme: styleSheetTheme,
-          syntaxHighlighter: syntaxHighlighter,
-          onTapLink: onTapLink,
-          onTapText: onTapText,
-          imageDirectory: imageDirectory,
-          blockSyntaxes: blockSyntaxes,
-          inlineSyntaxes: inlineSyntaxes,
-          extensionSet: extensionSet,
-          imageBuilder: imageBuilder,
-          checkboxBuilder: checkboxBuilder,
-          builders: builders,
-          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-          bulletBuilder: bulletBuilder,
-        );
+  const Markdown(
+      {Key? key,
+      String? data,
+      List<md.Node>? nodes,
+      bool selectable = false,
+      MarkdownStyleSheet? styleSheet,
+      MarkdownStyleSheetBaseTheme? styleSheetTheme,
+      SyntaxHighlighter? syntaxHighlighter,
+      MarkdownTapLinkCallback? onTapLink,
+      VoidCallback? onTapText,
+      String? imageDirectory,
+      List<md.BlockSyntax>? blockSyntaxes,
+      List<md.InlineSyntax>? inlineSyntaxes,
+      md.ExtensionSet? extensionSet,
+      MarkdownImageBuilder? imageBuilder,
+      MarkdownCheckboxBuilder? checkboxBuilder,
+      MarkdownBulletBuilder? bulletBuilder,
+      Map<String, MarkdownElementBuilder> builders = const {},
+      MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
+          MarkdownListItemCrossAxisAlignment.baseline,
+      this.padding = const EdgeInsets.all(16.0),
+      this.controller,
+      this.physics,
+      this.shrinkWrap = false,
+      this.alignment,
+      this.bottomView})
+      : super(
+            key: key,
+            data: data,
+            nodes: nodes,
+            selectable: selectable,
+            styleSheet: styleSheet,
+            styleSheetTheme: styleSheetTheme,
+            syntaxHighlighter: syntaxHighlighter,
+            onTapLink: onTapLink,
+            onTapText: onTapText,
+            imageDirectory: imageDirectory,
+            blockSyntaxes: blockSyntaxes,
+            inlineSyntaxes: inlineSyntaxes,
+            extensionSet: extensionSet,
+            imageBuilder: imageBuilder,
+            checkboxBuilder: checkboxBuilder,
+            builders: builders,
+            listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+            bulletBuilder: bulletBuilder,
+            bottomView: bottomView);
 
   /// The amount of space by which to inset the children.
   final EdgeInsets padding;
+
+  final Widget? bottomView;
 
   /// An object that can be used to control the position to which this scroll view is scrolled.
   ///
@@ -498,17 +507,17 @@ class Markdown extends MarkdownWidget {
   @override
   Widget build(BuildContext context, List<Widget>? children) {
     if (children!.length == 1) return children.single;
-      return ListView.builder(
-        padding: padding,
-        controller: controller,
-        physics: physics,
-        shrinkWrap: shrinkWrap,
-        reverse: _reverse,
-        itemCount: children.length,
-        itemBuilder: (BuildContext context, int index) {
-          return children[_reverse ? children.length - 1 - index : index];
-        },
-      );
+    return ListView.builder(
+      padding: padding,
+      controller: controller,
+      physics: physics,
+      shrinkWrap: shrinkWrap,
+      reverse: _reverse,
+      itemCount: children.length,
+      itemBuilder: (BuildContext context, int index) {
+        return children[_reverse ? children.length - 1 - index : index];
+      },
+    );
   }
 }
 
