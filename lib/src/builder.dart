@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '_functions_io.dart' if (dart.library.html) '_functions_web.dart';
+import 'custom_pop_up_menu.dart';
 import 'style_sheet.dart';
 import 'widget.dart';
 
@@ -49,6 +50,12 @@ class _TableElement {
   final List<TableRow> rows = <TableRow>[];
 }
 
+class ItemModel {
+  String title;
+  IconData icon;
+  ItemModel(this.title, this.icon);
+}
+
 /// A collection of widgets that should be placed adjacent to (inline with)
 /// other inline elements in the same parent block.
 ///
@@ -83,6 +90,10 @@ abstract class MarkdownBuilderDelegate {
   ///
   /// The `styleSheet` is the value of [MarkdownBuilder.styleSheet].
   TextSpan formatText(MarkdownStyleSheet styleSheet, String code);
+
+  Widget formatParagraphText(MarkdownStyleSheet styleSheet,TextStyle? textStyle, String code,TextAlign textAlign);
+
+
 }
 
 /// Builds a [Widget] tree from parsed Markdown.
@@ -106,6 +117,7 @@ class MarkdownBuilder implements md.NodeVisitor {
     this.onTapText,
   });
 
+
   /// A delegate that controls how link and `pre` elements behave.
   final MarkdownBuilderDelegate delegate;
 
@@ -113,6 +125,7 @@ class MarkdownBuilder implements md.NodeVisitor {
   ///
   /// Defaults to false.
   final bool selectable;
+
 
   /// Defines which [TextStyle] objects to use for each type of element.
   final MarkdownStyleSheet styleSheet;
@@ -297,20 +310,24 @@ class MarkdownBuilder implements md.NodeVisitor {
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           padding: styleSheet.codeblockPadding,
+          //现有业务这里不会进来
           child: _buildRichText(delegate.formatText(styleSheet, text.text)),
         ),
       );
     } else {
-      child = _buildRichText(
-        TextSpan(
-          style: _isInBlockquote
-              ? styleSheet.blockquote!.merge(_inlines.last.style)
-              : _inlines.last.style,
-          text: _isInBlockquote ? text.text : trimText(text.text),
-          recognizer: _linkHandlers.isNotEmpty ? _linkHandlers.last : null,
-        ),
-        textAlign: _textAlignForBlockTag(_currentBlockTag),
-      );
+      //现有业务这里会进来
+      debugPrint("buildRichText--other");
+      // child = _buildRichText(
+      //   TextSpan(
+      //     style: text.text == longPressHighLightText
+      //         ? TextStyle(backgroundColor: Colors.orangeAccent).merge(_inlines.last.style)
+      //         : _inlines.last.style,
+      //     text: _isInBlockquote ? text.text : trimText(text.text),
+      //   ),
+      //   textAlign: _textAlignForBlockTag(_currentBlockTag),
+      // );
+      child = delegate.formatParagraphText(styleSheet,_inlines.last.style, text.text,_textAlignForBlockTag(_currentBlockTag));
+
     }
     if (child != null) {
       _inlines.last.children.add(child);
@@ -704,20 +721,89 @@ class MarkdownBuilder implements md.NodeVisitor {
         : TextSpan(children: mergedSpans);
   }
 
+  List<ItemModel> menuItems = [
+    ItemModel('复制', Icons.content_copy),
+    ItemModel('转发', Icons.send),
+    ItemModel('收藏', Icons.collections),
+    ItemModel('删除', Icons.delete),
+    ItemModel('多选', Icons.playlist_add_check),
+    ItemModel('引用', Icons.format_quote),
+    ItemModel('提醒', Icons.add_alert),
+    ItemModel('搜一搜', Icons.search),
+  ];
+
+
+  Widget _buildLongPressMenu() {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(5),
+      child: Container(
+        width: 220,
+        color: const Color(0xFF4C4C4C),
+        child: GridView.count(
+          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 10),
+          crossAxisCount: 5,
+          crossAxisSpacing: 0,
+          mainAxisSpacing: 10,
+          shrinkWrap: true,
+          physics: NeverScrollableScrollPhysics(),
+          children: menuItems
+              .map((item) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              Icon(
+                item.icon,
+                size: 20,
+                color: Colors.white,
+              ),
+              Container(
+                margin: EdgeInsets.only(top: 2),
+                child: Text(
+                  item.title,
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ],
+          ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRichText(TextSpan? text, {TextAlign? textAlign}) {
-    if (selectable) {
-      return SelectableText.rich(
-        text!,
-        textScaleFactor: styleSheet.textScaleFactor,
-        textAlign: textAlign ?? TextAlign.start,
-        onTap: onTapText,
-      );
-    } else {
-      return RichText(
-        text: text!,
-        textScaleFactor: styleSheet.textScaleFactor!,
-        textAlign: textAlign ?? TextAlign.start,
-      );
-    }
+
+   return CustomPopupMenu(
+      child: Container(
+        padding: EdgeInsets.all(10),
+        child: RichText(
+          text: text!,
+          textScaleFactor: styleSheet.textScaleFactor!,
+          textAlign: textAlign ?? TextAlign.start,
+        ),
+      ),
+      menuBuilder: _buildLongPressMenu,
+      barrierColor: Colors.transparent,
+      pressType: PressType.longPress,
+      menuVisibleChange: (visible){
+     },
+    );
+    // if (selectable) {
+    //   return InkWell(
+    //     child: SelectableText.rich(
+    //       text!,
+    //       textScaleFactor: styleSheet.textScaleFactor,
+    //       textAlign: textAlign ?? TextAlign.start,
+    //       onTap: onTapText,
+    //
+    //     ),
+    //   );
+    // } else {
+    //   return RichText(
+    //     text: text!,
+    //     textScaleFactor: styleSheet.textScaleFactor!,
+    //     textAlign: textAlign ?? TextAlign.start,
+    //   );
+    // }
+
   }
 }
