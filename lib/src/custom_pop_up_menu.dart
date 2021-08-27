@@ -15,16 +15,20 @@ enum PreferredPosition {
 
 typedef MenuVisibleChange = Function(bool?);
 
+typedef ContentTapCallBack = Function(bool?);
+
 class CustomPopupMenuController extends ChangeNotifier {
   bool menuIsShowing = false;
 
   void showMenu() {
     menuIsShowing = true;
+    debugPrint("-controller showMenu");
     notifyListeners();
   }
 
   void hideMenu() {
     menuIsShowing = false;
+    debugPrint("-controller hideMenu");
     notifyListeners();
   }
 
@@ -35,8 +39,7 @@ class CustomPopupMenuController extends ChangeNotifier {
 }
 
 class CustomPopupMenu extends StatefulWidget {
-  CustomPopupMenu({
-    required this.child,
+  CustomPopupMenu({required this.child,
     required this.menuBuilder,
     required this.pressType,
     this.controller,
@@ -47,8 +50,8 @@ class CustomPopupMenu extends StatefulWidget {
     this.horizontalMargin = 10.0,
     this.verticalMargin = 10.0,
     this.position,
-    this.menuVisibleChange
-  });
+    this.menuVisibleChange,
+    this.contentTapCallBack});
 
   final Widget child;
   final PressType pressType;
@@ -62,6 +65,7 @@ class CustomPopupMenu extends StatefulWidget {
   final Widget Function() menuBuilder;
   final PreferredPosition? position;
   final MenuVisibleChange? menuVisibleChange;
+  final ContentTapCallBack? contentTapCallBack;
 
   @override
   _CustomPopupMenuState createState() => _CustomPopupMenuState();
@@ -89,7 +93,13 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
         return Stack(
           children: <Widget>[
             GestureDetector(
-              onTap: () => _hideMenu(),
+              onTap: () {
+                _hideMenu();
+                debugPrint("widget.contentTapCallBack--${widget.contentTapCallBack}");
+                if (widget.contentTapCallBack != null) {
+                  widget.contentTapCallBack!(false);
+                }
+              },
               child: Container(
                 color: widget.barrierColor,
               ),
@@ -98,7 +108,7 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
               child: Container(
                 constraints: BoxConstraints(
                   maxWidth:
-                      _parentBox!.size.width - 2 * widget.horizontalMargin,
+                  _parentBox!.size.width - 2 * widget.horizontalMargin,
                   minWidth: 0,
                 ),
                 child: CustomMultiChildLayout(
@@ -161,6 +171,7 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
   }
 
   _updateView() {
+    debugPrint("_controller.menuIsShowing${_controller?.menuIsShowing}");
     if (_controller?.menuIsShowing ?? false) {
       _showMenu();
     } else {
@@ -172,13 +183,17 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
   void initState() {
     super.initState();
     _controller = widget.controller;
+    debugPrint("_controller$_controller");
     if (_controller == null) _controller = CustomPopupMenuController();
     _controller?.addListener(_updateView);
     WidgetsBinding.instance?.addPostFrameCallback((call) {
       if (mounted) {
         _childBox = context.findRenderObject() as RenderBox?;
         _parentBox =
-            Overlay.of(context)?.context.findRenderObject() as RenderBox?;
+        Overlay
+            .of(context)
+            ?.context
+            .findRenderObject() as RenderBox?;
       }
     });
   }
@@ -202,6 +217,10 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
         onTap: () {
           if (widget.pressType == PressType.singleClick) {
             _showMenu();
+          }
+          if (widget.contentTapCallBack != null) {
+            debugPrint("widget.contentTapCallBack onTap");
+            widget.contentTapCallBack!(true);
           }
         },
         onLongPress: () {
@@ -239,6 +258,7 @@ enum _MenuPosition {
   topLeft,
   topCenter,
   topRight,
+  center,
 }
 
 class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
@@ -266,26 +286,19 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
     double anchorBottomY = anchorTopY + anchorSize.height;
     _MenuPosition menuPosition = _MenuPosition.bottomCenter;
 
-    debugPrint("menuPosition--anchorCenterX--$anchorCenterX--anchorTopY-$anchorTopY--anchorBottomY-$anchorBottomY");
-
-
     if (hasChild(_MenuLayoutId.content)) {
-      debugPrint("menuPosition--hasChild-content");
-
       contentSize = layoutChild(
         _MenuLayoutId.content,
         BoxConstraints.loose(size),
       );
     }
     if (hasChild(_MenuLayoutId.arrow)) {
-      debugPrint("menuPosition--hasChild-arrow");
       arrowSize = layoutChild(
         _MenuLayoutId.arrow,
         BoxConstraints.loose(size),
       );
     }
     if (hasChild(_MenuLayoutId.downArrow)) {
-      debugPrint("menuPosition--hasChild-downArrow");
       layoutChild(
         _MenuLayoutId.downArrow,
         BoxConstraints.loose(size),
@@ -293,23 +306,25 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
     }
 
     bool isTop = false;
-    if (position == null) {
-      // auto calculate position
-      isTop = anchorBottomY > size.height / 2;
+
+    if (anchorBottomY >=
+        size.height -
+            contentSize.height -
+            arrowSize.height -
+            verticalMargin &&
+        anchorTopY <= contentSize.height + arrowSize.height + verticalMargin) {
+      menuPosition = _MenuPosition.topCenter;
+    } else {}
+
+    if (anchorTopY > contentSize.height + arrowSize.height + verticalMargin) {
+      menuPosition = _MenuPosition.topCenter;
+    } else if (anchorBottomY <
+        size.height - contentSize.height - arrowSize.height - verticalMargin) {
+      menuPosition = _MenuPosition.bottomCenter;
     } else {
-      isTop = position == PreferredPosition.top;
-    }
-    debugPrint("menuPosition--anchorCenterX--$anchorCenterX--contentSize-w-${contentSize.width}-h-${contentSize.height}");
-    if (anchorCenterX - contentSize.width / 2 < 0) {
-      menuPosition = isTop ? _MenuPosition.topLeft : _MenuPosition.bottomLeft;
-    } else if (anchorCenterX + contentSize.width / 2 > size.width) {
-      menuPosition = isTop ? _MenuPosition.topRight : _MenuPosition.bottomRight;
-    } else {
-      menuPosition =
-          isTop ? _MenuPosition.topCenter : _MenuPosition.bottomCenter;
+      menuPosition = _MenuPosition.center;
     }
 
-    debugPrint("menuPosition--$menuPosition");
     switch (menuPosition) {
       case _MenuPosition.bottomCenter:
         arrowOffset = Offset(
@@ -365,6 +380,16 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
         contentOffset = Offset(
           size.width - contentSize.width,
           anchorTopY - verticalMargin - arrowSize.height - contentSize.height,
+        );
+        break;
+      case _MenuPosition.center:
+        arrowOffset = Offset(
+          anchorCenterX - arrowSize.width / 2,
+          size.height / 2 + contentSize.height,
+        );
+        contentOffset = Offset(
+          anchorCenterX - contentSize.width / 2,
+          size.height / 2,
         );
         break;
     }

@@ -45,6 +45,12 @@ typedef Widget MarkdownBulletBuilder(int index, BulletStyle style);
 /// Enumeration sent to the user when calling [MarkdownBulletBuilder]
 ///
 /// Use this to differentiate the bullet styling when building your own.
+///
+
+typedef ParagraphPressEditCallBack = Function(String md5, String content);
+
+typedef Widget CommentBubbleBuilder(String paragraphId);
+
 enum BulletStyle {
   orderedList,
   unorderedList,
@@ -141,31 +147,35 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// Creates a widget that parses and displays Markdown.
   ///
   /// The [data] argument must not be null.
-  const MarkdownWidget({
-    Key? key,
-    this.data,
-    this.nodes,
-    this.selectable = false,
-    this.styleSheet,
-    this.styleSheetTheme = MarkdownStyleSheetBaseTheme.material,
-    this.syntaxHighlighter,
-    this.onTapLink,
-    this.longPressCallback,
-    this.onTapText,
-    this.imageDirectory,
-    this.blockSyntaxes,
-    this.inlineSyntaxes,
-    this.extensionSet,
-    this.imageBuilder,
-    this.checkboxBuilder,
-    this.bulletBuilder,
-    this.builders = const {},
-    this.fitContent = false,
-    this.bottomView,
-    this.listItemCrossAxisAlignment =
-        MarkdownListItemCrossAxisAlignment.baseline,
-    this.highLightStyle,
-  })  : assert(data != null || nodes != null),
+  const MarkdownWidget(
+      {Key? key,
+      this.data,
+      this.nodes,
+      this.selectable = false,
+      this.styleSheet,
+      this.styleSheetTheme = MarkdownStyleSheetBaseTheme.material,
+      this.syntaxHighlighter,
+      this.onTapLink,
+      this.longPressCallback,
+      this.onTapText,
+      this.imageDirectory,
+      this.blockSyntaxes,
+      this.inlineSyntaxes,
+      this.extensionSet,
+      this.imageBuilder,
+      this.checkboxBuilder,
+      this.bulletBuilder,
+      this.builders = const {},
+      this.fitContent = false,
+      this.bottomView,
+      this.selectedBackgroundColor = Colors.transparent,
+      this.listItemCrossAxisAlignment =
+          MarkdownListItemCrossAxisAlignment.baseline,
+      this.highLightStyle,
+      this.paragraphPressEditCallBack,
+      this.commentBubbleBuilder,
+      this.contentTapCallBack})
+      : assert(data != null || nodes != null),
         assert(selectable != null),
         super(key: key);
 
@@ -174,9 +184,15 @@ abstract class MarkdownWidget extends StatefulWidget {
 
   final List<md.Node>? nodes;
 
+  //段落选中的颜色
+  final Color selectedBackgroundColor;
+
+  final ContentTapCallBack? contentTapCallBack;
 
   //底部点赞和分享的视图
   final Widget? bottomView;
+
+  final ParagraphPressEditCallBack? paragraphPressEditCallBack;
 
   /// If true, the text is selectable.
   ///
@@ -231,6 +247,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// Called when building a bullet
   final MarkdownBulletBuilder? bulletBuilder;
 
+  final CommentBubbleBuilder? commentBubbleBuilder;
+
   /// Render certain tags, usually used with [extensionSet]
   ///
   /// For example, we will add support for `sub` tag:
@@ -268,12 +286,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
   List<Widget>? _children;
   final List<GestureRecognizer> _recognizers = <GestureRecognizer>[];
   Timer? _timer;
-  String? longPressHighLightText;
-  String? preLongPressHighLightText;
+  String? selectedMd5;
 
   @override
   void didChangeDependencies() {
-    debugPrint("didChangeDependencies");
     _parseMarkdown();
     super.didChangeDependencies();
   }
@@ -281,13 +297,9 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
   @override
   void didUpdateWidget(MarkdownWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    debugPrint("didUpdateWidget");
     if (widget.data != oldWidget.data ||
-        widget.styleSheet != oldWidget.styleSheet ||
-        preLongPressHighLightText != longPressHighLightText) {
-      preLongPressHighLightText = longPressHighLightText;
+        widget.styleSheet != oldWidget.styleSheet) {
       _parseMarkdown();
-      debugPrint("_parseMarkdown");
     }
   }
 
@@ -306,23 +318,24 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
     _disposeRecognizers();
 
     final List<md.Node>? nodes =
-    widget.data != null ? _getMarkdownNodes(widget.data!) : widget.nodes;
+        widget.data != null ? _getMarkdownNodes(widget.data!) : widget.nodes;
 
     // Configure a Markdown widget builder to traverse the AST nodes and
     // create a widget tree based on the elements.
     final MarkdownBuilder builder = MarkdownBuilder(
-      delegate: this,
-      selectable: widget.selectable,
-      styleSheet: styleSheet,
-      imageDirectory: widget.imageDirectory,
-      imageBuilder: widget.imageBuilder,
-      checkboxBuilder: widget.checkboxBuilder,
-      bulletBuilder: widget.bulletBuilder,
-      builders: widget.builders,
-      fitContent: widget.fitContent,
-      listItemCrossAxisAlignment: widget.listItemCrossAxisAlignment,
-      onTapText: widget.onTapText,
-    );
+        delegate: this,
+        selectable: widget.selectable,
+        styleSheet: styleSheet,
+        imageDirectory: widget.imageDirectory,
+        imageBuilder: widget.imageBuilder,
+        checkboxBuilder: widget.checkboxBuilder,
+        bulletBuilder: widget.bulletBuilder,
+        builders: widget.builders,
+        fitContent: widget.fitContent,
+        listItemCrossAxisAlignment: widget.listItemCrossAxisAlignment,
+        onTapText: widget.onTapText,
+        selectedBackgroundColor: widget.selectedBackgroundColor,
+        selectTextMd5: selectedMd5);
 
     _children = builder.build(nodes!);
     if (_children != null && widget.bottomView != null) {
@@ -373,106 +386,104 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
   @override
   Widget build(BuildContext context) => widget.build(context, _children);
 
+  final contentColor = Color(0xff333740).withOpacity(0.95);
   List<ItemModel> menuItems = [
-    ItemModel('写段评', Icons.edit),
+    ItemModel('comment', Icons.edit),
   ];
 
-  Widget _buildLongPressMenu() {
+  Widget _buildLongPressMenu({required Function onEditTap}) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
-      child: Container(
-        width: 140,
-        color: const Color(0xFF4C4C4C),
-        alignment: Alignment.center,
-        child: Row(
-          children: menuItems
-              .map((item) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                item.icon,
-                size: 20,
-                color: Colors.white,
-              ),
-              Container(
-                margin: EdgeInsets.only(top: 2),
-                child: Text(
-                  item.title,
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+      child: GestureDetector(
+        onTap: () {
+          onEditTap();
+        },
+        child: Container(
+            color: contentColor,
+            width: 80,
+            alignment: Alignment.center,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                SizedBox(
+                  height: 4,
                 ),
-              ),
-            ],
-          ))
-              .toList(),
-        )
+                Icon(
+                  menuItems[0].icon,
+                  size: 20,
+                  color: Colors.white,
+                ),
+                Container(
+                  margin: EdgeInsets.only(top: 2),
+                  child: Text(
+                    menuItems[0].title,
+                    style: TextStyle(color: Colors.white, fontSize: 12),
+                  ),
+                ),
+                SizedBox(
+                  height: 4,
+                ),
+              ],
+            )),
       ),
     );
   }
 
+  final controlMap = Map<String, CustomPopupMenuController>();
+
   @override
-  Widget formatParagraphText(MarkdownStyleSheet styleSheet,
-      TextStyle? textStyle, String text, TextAlign textAlign) {
-    bool choosed = longPressHighLightText == text;
-    debugPrint("menuVisibleChange--choosed--$choosed");
+  Widget formatParagraphText(
+      String paragraphId,
+      InlineSpan inlineSpan,
+      MarkdownStyleSheet styleSheet,
+      TextStyle? textStyle,
+      TextAlign textAlign) {
+    if (controlMap[paragraphId] == null) {
+      controlMap[paragraphId] = CustomPopupMenuController();
+    }
+
     return CustomPopupMenu(
-      child: Container(
-          child: Text.rich(
-        TextSpan(children: [
-          TextSpan(
-            style: textStyle!.merge(TextStyle(
-                background: Paint()
-                  ..strokeWidth = textStyle.fontSize! - 4
-                  ..color = longPressHighLightText == text
-                      ? Colors.orangeAccent
-                      : Colors.transparent
-                  ..style = PaintingStyle.fill
-                  ..strokeJoin = StrokeJoin.round)),
-            text: text,
-          ),
-          WidgetSpan(
-              child: Container(
-            width: 32,
-            decoration: BoxDecoration(
-                shape: BoxShape.rectangle,
-                borderRadius: BorderRadius.all(Radius.circular(8)),
-                color: Colors.redAccent),
-            child: Text(
-              "11",
-              style: TextStyle(color: Colors.white),
-            ),
-          ))
-        ]),
-        textScaleFactor: styleSheet.textScaleFactor!,
-        // selectionColor: choosed ? Colors.orangeAccent : Colors.red,
-        textAlign: textAlign,
-        // selectionControls: MyMaterialTextSelectionControls(),
-      )),
-      menuBuilder: _buildLongPressMenu,
+      child: GestureDetector(
+        child: Container(
+            child: Text.rich(
+          TextSpan(children: [
+            inlineSpan,
+            WidgetSpan(
+                child: widget.commentBubbleBuilder != null
+                    ? widget.commentBubbleBuilder!(paragraphId)
+                    : Container())
+          ]),
+          textScaleFactor: styleSheet.textScaleFactor!,
+          textAlign: textAlign,
+          overflow: TextOverflow.visible,
+        )),
+      ),
+      menuBuilder: () {
+        return _buildLongPressMenu(onEditTap: () {
+          controlMap[paragraphId]?.hideMenu();
+          if (widget.paragraphPressEditCallBack != null) {
+            widget.paragraphPressEditCallBack!(
+                paragraphId, inlineSpan.toPlainText());
+          }
+        });
+      },
       barrierColor: Colors.transparent,
       pressType: PressType.longPress,
+      arrowColor: contentColor,
+      verticalMargin: 0,
       menuVisibleChange: (visible) {
         debugPrint("menuVisibleChange--$visible");
         if (visible == true) {
-          longPressHighLightText = text;
+          selectedMd5 = paragraphId;
         } else {
-          longPressHighLightText = "";
+          selectedMd5 = "";
         }
-        setState(() {});
+        _parseMarkdown();
       },
+      controller: controlMap[paragraphId],
+      contentTapCallBack: widget.contentTapCallBack,
     );
   }
-
-// @override
-// Widget formatParagraphText(MarkdownStyleSheet styleSheet, String code) {
-//   code = code.replaceAll(RegExp(r'\n$'), '');
-//   debugPrint("formatText $code");
-//   debugPrint("formatText $longPressHighLightText");
-//
-//   if (widget.highLightStyle != null && code == longPressHighLightText) {
-//     return TextSpan(style: widget.highLightStyle, text: code);
-//   }
-//   return TextSpan(style: styleSheet.code, text: code);
-// }
 }
 
 /// A non-scrolling widget that parses and displays Markdown.
@@ -503,37 +514,42 @@ class MarkdownBody extends MarkdownWidget {
     MarkdownImageBuilder? imageBuilder,
     MarkdownCheckboxBuilder? checkboxBuilder,
     MarkdownBulletBuilder? bulletBuilder,
+    CommentBubbleBuilder? commentBubbleBuilder,
     Map<String, MarkdownElementBuilder> builders = const {},
     MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
         MarkdownListItemCrossAxisAlignment.baseline,
     this.shrinkWrap = true,
     this.fitContent = true,
+    this.selectedBackgroundColor = Colors.transparent,
   }) : super(
-          key: key,
-          data: data,
-          nodes: nodes,
-          selectable: selectable,
-          styleSheet: styleSheet,
-          styleSheetTheme: styleSheetTheme,
-          syntaxHighlighter: syntaxHighlighter,
-          onTapLink: onTapLink,
-          onTapText: onTapText,
-          imageDirectory: imageDirectory,
-          blockSyntaxes: blockSyntaxes,
-          inlineSyntaxes: inlineSyntaxes,
-          extensionSet: extensionSet,
-          imageBuilder: imageBuilder,
-          checkboxBuilder: checkboxBuilder,
-          builders: builders,
-          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-          bulletBuilder: bulletBuilder,
-        );
+            key: key,
+            data: data,
+            nodes: nodes,
+            selectable: selectable,
+            styleSheet: styleSheet,
+            styleSheetTheme: styleSheetTheme,
+            syntaxHighlighter: syntaxHighlighter,
+            onTapLink: onTapLink,
+            onTapText: onTapText,
+            imageDirectory: imageDirectory,
+            blockSyntaxes: blockSyntaxes,
+            inlineSyntaxes: inlineSyntaxes,
+            extensionSet: extensionSet,
+            imageBuilder: imageBuilder,
+            checkboxBuilder: checkboxBuilder,
+            builders: builders,
+            listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+            bulletBuilder: bulletBuilder,
+            commentBubbleBuilder: commentBubbleBuilder,
+            selectedBackgroundColor: selectedBackgroundColor);
 
   /// See [ScrollView.shrinkWrap]
   final bool shrinkWrap;
 
   /// Whether to allow the widget to fit the child content.
   final bool fitContent;
+
+  final Color selectedBackgroundColor;
 
   @override
   Widget build(BuildContext context, List<Widget>? children) {
@@ -558,58 +574,65 @@ class MarkdownBody extends MarkdownWidget {
 ///  * <https://github.github.com/gfm/>
 class Markdown extends MarkdownWidget {
   /// Creates a scrolling widget that parses and displays Markdown.
-  const Markdown({
-    Key? key,
-    String? data,
-    List<md.Node>? nodes,
-    bool selectable = false,
-    MarkdownStyleSheet? styleSheet,
-    MarkdownStyleSheetBaseTheme? styleSheetTheme,
-    SyntaxHighlighter? syntaxHighlighter,
-    TextStyle? highLightStyle,
-    MarkdownTapLinkCallback? onTapLink,
-    MarkdownLongPressCallback? longPressCallback,
-    VoidCallback? onTapText,
-    String? imageDirectory,
-    List<md.BlockSyntax>? blockSyntaxes,
-    List<md.InlineSyntax>? inlineSyntaxes,
-    md.ExtensionSet? extensionSet,
-    MarkdownImageBuilder? imageBuilder,
-    MarkdownCheckboxBuilder? checkboxBuilder,
-    MarkdownBulletBuilder? bulletBuilder,
-    Map<String, MarkdownElementBuilder> builders = const {},
-    MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
-        MarkdownListItemCrossAxisAlignment.baseline,
-    this.padding = const EdgeInsets.all(16.0),
-    this.controller,
-    this.physics,
-    this.shrinkWrap = false,
-    this.alignment,
-    this.bottomView
-  }) : super(
-          key: key,
-          data: data,
-          nodes: nodes,
-          selectable: selectable,
-          styleSheet: styleSheet,
-          styleSheetTheme: styleSheetTheme,
-          syntaxHighlighter: syntaxHighlighter,
-          highLightStyle: highLightStyle,
-          onTapLink: onTapLink,
-    longPressCallback: longPressCallback,
-
-    onTapText: onTapText,
-          imageDirectory: imageDirectory,
-          blockSyntaxes: blockSyntaxes,
-          inlineSyntaxes: inlineSyntaxes,
-          extensionSet: extensionSet,
-          imageBuilder: imageBuilder,
-          checkboxBuilder: checkboxBuilder,
-          builders: builders,
-          listItemCrossAxisAlignment: listItemCrossAxisAlignment,
-          bulletBuilder: bulletBuilder,
-      bottomView: bottomView
-        );
+  const Markdown(
+      {Key? key,
+      String? data,
+      List<md.Node>? nodes,
+      bool selectable = false,
+      MarkdownStyleSheet? styleSheet,
+      MarkdownStyleSheetBaseTheme? styleSheetTheme,
+      SyntaxHighlighter? syntaxHighlighter,
+      TextStyle? highLightStyle,
+      MarkdownTapLinkCallback? onTapLink,
+      MarkdownLongPressCallback? longPressCallback,
+      VoidCallback? onTapText,
+      String? imageDirectory,
+      List<md.BlockSyntax>? blockSyntaxes,
+      List<md.InlineSyntax>? inlineSyntaxes,
+      md.ExtensionSet? extensionSet,
+      MarkdownImageBuilder? imageBuilder,
+      MarkdownCheckboxBuilder? checkboxBuilder,
+      MarkdownBulletBuilder? bulletBuilder,
+      Map<String, MarkdownElementBuilder> builders = const {},
+      MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
+          MarkdownListItemCrossAxisAlignment.baseline,
+      ParagraphPressEditCallBack? paragraphPressEditCallBack,
+      CommentBubbleBuilder? commentBubbleBuilder,
+      ContentTapCallBack? contentTapCallBack,
+      Color? selectedBackgroundColor,
+      this.padding = const EdgeInsets.all(16.0),
+      this.controller,
+      this.physics,
+      this.shrinkWrap = false,
+      this.alignment,
+      this.bottomView})
+      : super(
+            key: key,
+            data: data,
+            nodes: nodes,
+            selectable: selectable,
+            styleSheet: styleSheet,
+            styleSheetTheme: styleSheetTheme,
+            syntaxHighlighter: syntaxHighlighter,
+            highLightStyle: highLightStyle,
+            onTapLink: onTapLink,
+            longPressCallback: longPressCallback,
+            onTapText: onTapText,
+            imageDirectory: imageDirectory,
+            blockSyntaxes: blockSyntaxes,
+            inlineSyntaxes: inlineSyntaxes,
+            extensionSet: extensionSet,
+            imageBuilder: imageBuilder,
+            checkboxBuilder: checkboxBuilder,
+            builders: builders,
+            listItemCrossAxisAlignment: listItemCrossAxisAlignment,
+            bulletBuilder: bulletBuilder,
+            paragraphPressEditCallBack: paragraphPressEditCallBack,
+            contentTapCallBack: contentTapCallBack,
+            commentBubbleBuilder: commentBubbleBuilder,
+            selectedBackgroundColor:
+                selectedBackgroundColor ?? Colors.transparent,
+            bottomView: bottomView);
 
   /// The amount of space by which to inset the children.
   final EdgeInsets padding;

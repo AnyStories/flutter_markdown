@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:markdown/markdown.dart' as md;
 
 import '_functions_io.dart' if (dart.library.html) '_functions_web.dart';
-import 'custom_pop_up_menu.dart';
 import 'style_sheet.dart';
 import 'widget.dart';
 
@@ -53,6 +52,7 @@ class _TableElement {
 class ItemModel {
   String title;
   IconData icon;
+
   ItemModel(this.title, this.icon);
 }
 
@@ -91,9 +91,10 @@ abstract class MarkdownBuilderDelegate {
   /// The `styleSheet` is the value of [MarkdownBuilder.styleSheet].
   TextSpan formatText(MarkdownStyleSheet styleSheet, String code);
 
-  Widget formatParagraphText(MarkdownStyleSheet styleSheet,TextStyle? textStyle, String code,TextAlign textAlign);
+  // Widget formatParagraphText(MarkdownStyleSheet styleSheet,TextStyle? textStyle, String code,TextAlign textAlign);
 
-
+  Widget formatParagraphText(String paragraphId, InlineSpan child,
+      MarkdownStyleSheet styleSheet, TextStyle? textStyle, TextAlign textAlign);
 }
 
 /// Builds a [Widget] tree from parsed Markdown.
@@ -115,8 +116,9 @@ class MarkdownBuilder implements md.NodeVisitor {
     required this.listItemCrossAxisAlignment,
     this.fitContent = false,
     this.onTapText,
+    this.selectTextMd5,
+    required this.selectedBackgroundColor
   });
-
 
   /// A delegate that controls how link and `pre` elements behave.
   final MarkdownBuilderDelegate delegate;
@@ -126,6 +128,10 @@ class MarkdownBuilder implements md.NodeVisitor {
   /// Defaults to false.
   final bool selectable;
 
+  final String? selectTextMd5;
+
+  //段落选中的颜色
+  final Color selectedBackgroundColor;
 
   /// Defines which [TextStyle] objects to use for each type of element.
   final MarkdownStyleSheet styleSheet;
@@ -315,18 +321,16 @@ class MarkdownBuilder implements md.NodeVisitor {
         ),
       );
     } else {
-      //现有业务这里会进来
-      debugPrint("buildRichText--other");
-      // child = _buildRichText(
-      //   TextSpan(
-      //     style: text.text == longPressHighLightText
-      //         ? TextStyle(backgroundColor: Colors.orangeAccent).merge(_inlines.last.style)
-      //         : _inlines.last.style,
-      //     text: _isInBlockquote ? text.text : trimText(text.text),
-      //   ),
-      //   textAlign: _textAlignForBlockTag(_currentBlockTag),
-      // );
-      child = delegate.formatParagraphText(styleSheet,_inlines.last.style, text.text,_textAlignForBlockTag(_currentBlockTag));
+      child = _buildRichText(
+        TextSpan(
+          style: _isInBlockquote
+              ? styleSheet.blockquote!.merge(_inlines.last.style)
+              : _inlines.last.style,
+          text: _isInBlockquote ? text.text : trimText(text.text),
+        ),
+        textAlign: _textAlignForBlockTag(_currentBlockTag),
+      );
+      // child = delegate.formatParagraphText(styleSheet,_inlines.last.style, text.text,_textAlignForBlockTag(_currentBlockTag));
 
     }
     if (child != null) {
@@ -337,7 +341,6 @@ class MarkdownBuilder implements md.NodeVisitor {
   @override
   void visitElementAfter(md.Element element) {
     final String tag = element.tag;
-
     if (_isBlockTag(tag)) {
       _addAnonymousBlockIfNeeded();
 
@@ -592,26 +595,67 @@ class MarkdownBuilder implements md.NodeVisitor {
     }
 
     final _InlineElement inline = _inlines.single;
+    String md5 = "";
     if (inline.children.isNotEmpty) {
+      if (inline.children[0] is RichText) {
+        final RichText richText = inline.children[0] as RichText;
+        RichText contentRichText = richText;
+        final allContent = richText.text.toPlainText();
+        String? content;
+        if (allContent.startsWith("{{")) {
+          List<String> list = allContent.split("}}");
+          if (list.isNotEmpty && list.length > 1) {
+            md5 = list[0];
+            if (md5.length > 2) {
+              md5 = md5.substring(2, md5.length);
+            }
+            content = list[1];
+          }
+        }
+        if (content != null) {
+          InlineSpan previous = richText.text;
+          contentRichText = _buildRichText(
+              TextSpan(
+                text: content,
+                style: previous.style,
+              ),
+              textAlign: textAlign) as RichText;
+        }
+        inline.children[0] = contentRichText;
+      }
       List<Widget> mergedInlines = _mergeInlineChildren(
-        inline.children,
-        textAlign,
-      );
-      final Wrap wrap = Wrap(
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: mergedInlines,
-        alignment: blockAlignment,
-      );
+          inline.children, textAlign,
+          selected:
+              (selectTextMd5?.isNotEmpty ?? false) && selectTextMd5 == md5);
+      Wrap wrap;
+      if ("p" == _currentBlockTag &&
+          mergedInlines.length == 1 &&
+          (mergedInlines[0] is RichText)) {
+        final InlineSpan span = (mergedInlines[0] as RichText).text;
+        wrap = Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            delegate.formatParagraphText(
+                md5, span, styleSheet, _inlines.last.style, textAlign)
+          ],
+          alignment: blockAlignment,
+        );
+      } else {
+        wrap = Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: mergedInlines,
+          alignment: blockAlignment,
+        );
+      }
+
       _addBlockChild(wrap);
       _inlines.clear();
     }
   }
 
   /// Merges adjacent [TextSpan] children
-  List<Widget> _mergeInlineChildren(
-    List<Widget> children,
-    TextAlign? textAlign,
-  ) {
+  List<Widget> _mergeInlineChildren(List<Widget> children, TextAlign? textAlign,
+      {bool selected = false}) {
     List<Widget> mergedTexts = <Widget>[];
     for (Widget child in children) {
       if (mergedTexts.isNotEmpty &&
@@ -623,11 +667,9 @@ class MarkdownBuilder implements md.NodeVisitor {
             ? List.from(previousTextSpan.children!)
             : [previousTextSpan];
         children.add(child.text as TextSpan);
-        TextSpan? mergedSpan = _mergeSimilarTextSpans(children);
-        mergedTexts.add(_buildRichText(
-          mergedSpan,
-          textAlign: textAlign,
-        ));
+        TextSpan? mergedSpan =
+            _mergeSimilarTextSpans(children, selected: selected);
+        mergedTexts.add(_buildRichText(mergedSpan, textAlign: textAlign));
       } else if (mergedTexts.isNotEmpty &&
           mergedTexts.last is SelectableText &&
           child is SelectableText) {
@@ -639,15 +681,21 @@ class MarkdownBuilder implements md.NodeVisitor {
         if (child.textSpan != null) {
           children.add(child.textSpan!);
         }
-        TextSpan? mergedSpan = _mergeSimilarTextSpans(children);
+        TextSpan? mergedSpan =
+            _mergeSimilarTextSpans(children, selected: selected);
         mergedTexts.add(
-          _buildRichText(
-            mergedSpan,
-            textAlign: textAlign,
-          ),
+          _buildRichText(mergedSpan, textAlign: textAlign),
         );
       } else {
-        mergedTexts.add(child);
+        if (child is RichText) {
+          TextSpan previousTextSpan = child.text as TextSpan;
+          final textChild = _buildRichText(
+              _mergeSimilarTextSpans([previousTextSpan], selected: selected),
+              textAlign: textAlign);
+          mergedTexts.add(textChild);
+        } else {
+          mergedTexts.add(child);
+        }
       }
     }
     return mergedTexts;
@@ -689,9 +737,25 @@ class MarkdownBuilder implements md.NodeVisitor {
   }
 
   /// Combine text spans with equivalent properties into a single span.
-  TextSpan? _mergeSimilarTextSpans(List<TextSpan>? textSpans) {
-    if (textSpans == null || textSpans.length < 2) {
+  TextSpan? _mergeSimilarTextSpans(List<TextSpan>? textSpans,
+      {bool selected = false}) {
+    if (textSpans == null) {
       return TextSpan(children: textSpans);
+    } else if (textSpans.length < 2) {
+      TextSpan previous = textSpans.first;
+      return TextSpan(
+          text: previous.toPlainText(),
+          recognizer: previous.recognizer,
+          semanticsLabel: previous.semanticsLabel,
+          style: selected
+              ? previous.style!.merge(TextStyle(
+                  background: Paint()
+                    ..strokeWidth = previous.style!.fontSize! - 4
+                    ..color = selectedBackgroundColor
+                    ..style = PaintingStyle.fill
+                    ..strokeJoin = StrokeJoin.round))
+              : previous.style!.merge(
+                  TextStyle(background: Paint()..color = Colors.transparent)));
     }
 
     List<TextSpan> mergedSpans = <TextSpan>[textSpans.first];
@@ -704,13 +768,31 @@ class MarkdownBuilder implements md.NodeVisitor {
           nextChild.style == mergedSpans.last.style) {
         TextSpan previous = mergedSpans.removeLast();
         mergedSpans.add(TextSpan(
-          text: previous.toPlainText() + nextChild.toPlainText(),
-          recognizer: previous.recognizer,
-          semanticsLabel: previous.semanticsLabel,
-          style: previous.style,
-        ));
+            text: previous.toPlainText() + nextChild.toPlainText(),
+            recognizer: previous.recognizer,
+            semanticsLabel: previous.semanticsLabel,
+            style: selected
+                ? previous.style!.merge(TextStyle(
+                    background: Paint()
+                      ..strokeWidth = previous.style!.fontSize! - 4
+                      ..color = selectedBackgroundColor
+                      ..style = PaintingStyle.fill
+                      ..strokeJoin = StrokeJoin.round))
+                : previous.style!.merge(
+                    TextStyle(background: Paint()..color = Colors.transparent),
+                  )));
       } else {
-        mergedSpans.add(nextChild);
+        mergedSpans.add(TextSpan(
+            text: nextChild.text,
+            style: selected
+                ? nextChild.style!.merge(TextStyle(
+                    background: Paint()
+                      ..strokeWidth = nextChild.style!.fontSize! - 4
+                      ..color = selectedBackgroundColor
+                      ..style = PaintingStyle.fill
+                      ..strokeJoin = StrokeJoin.round))
+                : nextChild.style!.merge(TextStyle(
+                    background: Paint()..color = Colors.transparent))));
       }
     }
 
@@ -721,89 +803,20 @@ class MarkdownBuilder implements md.NodeVisitor {
         : TextSpan(children: mergedSpans);
   }
 
-  List<ItemModel> menuItems = [
-    ItemModel('复制', Icons.content_copy),
-    ItemModel('转发', Icons.send),
-    ItemModel('收藏', Icons.collections),
-    ItemModel('删除', Icons.delete),
-    ItemModel('多选', Icons.playlist_add_check),
-    ItemModel('引用', Icons.format_quote),
-    ItemModel('提醒', Icons.add_alert),
-    ItemModel('搜一搜', Icons.search),
-  ];
-
-
-  Widget _buildLongPressMenu() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(5),
-      child: Container(
-        width: 220,
-        color: const Color(0xFF4C4C4C),
-        child: GridView.count(
-          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 10),
-          crossAxisCount: 5,
-          crossAxisSpacing: 0,
-          mainAxisSpacing: 10,
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          children: menuItems
-              .map((item) => Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Icon(
-                item.icon,
-                size: 20,
-                color: Colors.white,
-              ),
-              Container(
-                margin: EdgeInsets.only(top: 2),
-                child: Text(
-                  item.title,
-                  style: TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-            ],
-          ))
-              .toList(),
-        ),
-      ),
-    );
-  }
-
   Widget _buildRichText(TextSpan? text, {TextAlign? textAlign}) {
-
-   return CustomPopupMenu(
-      child: Container(
-        padding: EdgeInsets.all(10),
-        child: RichText(
-          text: text!,
-          textScaleFactor: styleSheet.textScaleFactor!,
-          textAlign: textAlign ?? TextAlign.start,
-        ),
-      ),
-      menuBuilder: _buildLongPressMenu,
-      barrierColor: Colors.transparent,
-      pressType: PressType.longPress,
-      menuVisibleChange: (visible){
-     },
-    );
-    // if (selectable) {
-    //   return InkWell(
-    //     child: SelectableText.rich(
-    //       text!,
-    //       textScaleFactor: styleSheet.textScaleFactor,
-    //       textAlign: textAlign ?? TextAlign.start,
-    //       onTap: onTapText,
-    //
-    //     ),
-    //   );
-    // } else {
-    //   return RichText(
-    //     text: text!,
-    //     textScaleFactor: styleSheet.textScaleFactor!,
-    //     textAlign: textAlign ?? TextAlign.start,
-    //   );
-    // }
-
+    if (selectable) {
+      return SelectableText.rich(
+        text!,
+        textScaleFactor: styleSheet.textScaleFactor,
+        textAlign: textAlign ?? TextAlign.start,
+        onTap: onTapText,
+      );
+    } else {
+      return RichText(
+        text: text!,
+        textScaleFactor: styleSheet.textScaleFactor!,
+        textAlign: textAlign ?? TextAlign.start,
+      );
+    }
   }
 }
