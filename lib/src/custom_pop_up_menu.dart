@@ -304,21 +304,12 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
         BoxConstraints.loose(size),
       );
     }
-
-    bool isTop = false;
-
-    if (anchorBottomY >=
-        size.height -
-            contentSize.height -
-            arrowSize.height -
-            verticalMargin &&
-        anchorTopY <= contentSize.height + arrowSize.height + verticalMargin) {
+    //去除刘海屏的安全区域
+    final top = WidgetsBinding.instance?.window.padding.top??0;
+    final bottom = WidgetsBinding.instance?.window.padding.bottom??0;
+    if (anchorTopY-top > contentSize.height + arrowSize.height + verticalMargin) {
       menuPosition = _MenuPosition.topCenter;
-    } else {}
-
-    if (anchorTopY > contentSize.height + arrowSize.height + verticalMargin) {
-      menuPosition = _MenuPosition.topCenter;
-    } else if (anchorBottomY <
+    } else if (anchorBottomY -bottom<
         size.height - contentSize.height - arrowSize.height - verticalMargin) {
       menuPosition = _MenuPosition.bottomCenter;
     } else {
