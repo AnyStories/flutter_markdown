@@ -475,10 +475,10 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
         debugPrint("menuVisibleChange--$visible");
         if (visible == true) {
           selectedMd5 = paragraphId;
+          _parseMarkdown();
         } else {
           selectedMd5 = "";
         }
-        _parseMarkdown();
       },
       controller: controlMap[paragraphId],
       contentTapCallBack: widget.contentTapCallBack,
