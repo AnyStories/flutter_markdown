@@ -39,19 +39,20 @@ class CustomPopupMenuController extends ChangeNotifier {
 }
 
 class CustomPopupMenu extends StatefulWidget {
-  CustomPopupMenu({required this.child,
-    required this.menuBuilder,
-    required this.pressType,
-    this.controller,
-    this.arrowColor = const Color(0xFF4C4C4C),
-    this.showArrow = true,
-    this.barrierColor = Colors.black12,
-    this.arrowSize = 10.0,
-    this.horizontalMargin = 10.0,
-    this.verticalMargin = 10.0,
-    this.position,
-    this.menuVisibleChange,
-    this.contentTapCallBack});
+  CustomPopupMenu(
+      {required this.child,
+      required this.menuBuilder,
+      required this.pressType,
+      this.controller,
+      this.arrowColor = const Color(0xFF4C4C4C),
+      this.showArrow = true,
+      this.barrierColor = Colors.black12,
+      this.arrowSize = 10.0,
+      this.horizontalMargin = 10.0,
+      this.verticalMargin = 10.0,
+      this.position,
+      this.menuVisibleChange,
+      this.contentTapCallBack});
 
   final Widget child;
   final PressType pressType;
@@ -95,7 +96,8 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
             GestureDetector(
               onTap: () {
                 _hideMenu();
-                debugPrint("widget.contentTapCallBack--${widget.contentTapCallBack}");
+                debugPrint(
+                    "widget.contentTapCallBack--${widget.contentTapCallBack}");
                 if (widget.contentTapCallBack != null) {
                   widget.contentTapCallBack!(false);
                 }
@@ -108,7 +110,7 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
               child: Container(
                 constraints: BoxConstraints(
                   maxWidth:
-                  _parentBox!.size.width - 2 * widget.horizontalMargin,
+                      _parentBox!.size.width - 2 * widget.horizontalMargin,
                   minWidth: 0,
                 ),
                 child: CustomMultiChildLayout(
@@ -161,13 +163,16 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
     widget.menuVisibleChange!(showMenu);
   }
 
-  _hideMenu() {
+  _hideMenu({bool dispose = false}) {
     if (_overlayEntry != null) {
       _overlayEntry?.remove();
       _overlayEntry = null;
     }
     showMenu = false;
-    widget.menuVisibleChange!(showMenu);
+    //如果是销毁则不用刷新
+    if (!dispose) {
+      widget.menuVisibleChange!(showMenu);
+    }
   }
 
   _updateView() {
@@ -190,17 +195,14 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
       if (mounted) {
         _childBox = context.findRenderObject() as RenderBox?;
         _parentBox =
-        Overlay
-            .of(context)
-            ?.context
-            .findRenderObject() as RenderBox?;
+            Overlay.of(context)?.context.findRenderObject() as RenderBox?;
       }
     });
   }
 
   @override
   void dispose() {
-    _hideMenu();
+    _hideMenu(dispose: true);
     _controller?.removeListener(_updateView);
     super.dispose();
   }
@@ -305,11 +307,12 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
       );
     }
     //去除刘海屏的安全区域
-    final top = WidgetsBinding.instance?.window.padding.top??0;
-    final bottom = WidgetsBinding.instance?.window.padding.bottom??0;
-    if (anchorTopY-top > contentSize.height + arrowSize.height + verticalMargin) {
+    final top = WidgetsBinding.instance?.window.padding.top ?? 0;
+    final bottom = WidgetsBinding.instance?.window.padding.bottom ?? 0;
+    if (anchorTopY - top >
+        contentSize.height + arrowSize.height + verticalMargin) {
       menuPosition = _MenuPosition.topCenter;
-    } else if (anchorBottomY -bottom<
+    } else if (anchorBottomY - bottom <
         size.height - contentSize.height - arrowSize.height - verticalMargin) {
       menuPosition = _MenuPosition.bottomCenter;
     } else {
