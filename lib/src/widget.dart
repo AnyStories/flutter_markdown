@@ -51,12 +51,12 @@ typedef ParagraphPressEditCallBack = Function(String md5, String content);
 
 typedef Widget CommentBubbleBuilder(String paragraphId);
 
+typedef LongPressCallBack = Function(String paragraphId);
+
 enum BulletStyle {
   orderedList,
   unorderedList,
 }
-
-const _kLongPressDuration = Duration(milliseconds: 600);
 
 /// Creates a format [TextSpan] given a string.
 ///
@@ -174,7 +174,8 @@ abstract class MarkdownWidget extends StatefulWidget {
       this.highLightStyle,
       this.paragraphPressEditCallBack,
       this.commentBubbleBuilder,
-      this.contentTapCallBack})
+      this.contentTapCallBack,
+      this.longPressCallBack})
       : assert(data != null || nodes != null),
         assert(selectable != null),
         super(key: key);
@@ -188,6 +189,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   final Color selectedBackgroundColor;
 
   final ContentTapCallBack? contentTapCallBack;
+
+  final LongPressCallBack? longPressCallBack;
 
   //底部点赞和分享的视图
   final Widget? bottomView;
@@ -473,8 +476,12 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
       verticalMargin: 0,
       menuVisibleChange: (visible) {
         debugPrint("menuVisibleChange--$visible");
+
         if (visible == true) {
           selectedMd5 = paragraphId;
+          if (widget.longPressCallBack != null) {
+            widget.longPressCallBack!(paragraphId);
+          }
         } else {
           selectedMd5 = "";
         }
@@ -599,6 +606,7 @@ class Markdown extends MarkdownWidget {
       ParagraphPressEditCallBack? paragraphPressEditCallBack,
       CommentBubbleBuilder? commentBubbleBuilder,
       ContentTapCallBack? contentTapCallBack,
+      LongPressCallBack? longPressCallBack,
       Color? selectedBackgroundColor,
       this.padding = const EdgeInsets.all(16.0),
       this.controller,
@@ -629,6 +637,7 @@ class Markdown extends MarkdownWidget {
             bulletBuilder: bulletBuilder,
             paragraphPressEditCallBack: paragraphPressEditCallBack,
             contentTapCallBack: contentTapCallBack,
+            longPressCallBack: longPressCallBack,
             commentBubbleBuilder: commentBubbleBuilder,
             selectedBackgroundColor:
                 selectedBackgroundColor ?? Colors.transparent,
