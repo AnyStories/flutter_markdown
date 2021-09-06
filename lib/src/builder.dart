@@ -10,6 +10,8 @@ import '_functions_io.dart' if (dart.library.html) '_functions_web.dart';
 import 'style_sheet.dart';
 import 'widget.dart';
 
+final RegExp expHash = new RegExp(r"(^{{[A-Za-z0-9]{32}\}})");
+
 const List<String> _kBlockTags = const <String>[
   'p',
   'h1',
@@ -104,21 +106,20 @@ abstract class MarkdownBuilderDelegate {
 ///  * [Markdown], which is a widget that parses and displays Markdown.
 class MarkdownBuilder implements md.NodeVisitor {
   /// Creates an object that builds a [Widget] tree from parsed Markdown.
-  MarkdownBuilder({
-    required this.delegate,
-    required this.selectable,
-    required this.styleSheet,
-    required this.imageDirectory,
-    required this.imageBuilder,
-    required this.checkboxBuilder,
-    required this.bulletBuilder,
-    required this.builders,
-    required this.listItemCrossAxisAlignment,
-    this.fitContent = false,
-    this.onTapText,
-    this.selectTextMd5,
-    required this.selectedBackgroundColor
-  });
+  MarkdownBuilder(
+      {required this.delegate,
+      required this.selectable,
+      required this.styleSheet,
+      required this.imageDirectory,
+      required this.imageBuilder,
+      required this.checkboxBuilder,
+      required this.bulletBuilder,
+      required this.builders,
+      required this.listItemCrossAxisAlignment,
+      this.fitContent = false,
+      this.onTapText,
+      this.selectTextMd5,
+      required this.selectedBackgroundColor});
 
   /// A delegate that controls how link and `pre` elements behave.
   final MarkdownBuilderDelegate delegate;
@@ -602,14 +603,11 @@ class MarkdownBuilder implements md.NodeVisitor {
         RichText contentRichText = richText;
         final allContent = richText.text.toPlainText();
         String? content;
-        if (allContent.startsWith("{{")) {
-          List<String> list = allContent.split("}}");
-          if (list.isNotEmpty && list.length > 1) {
-            md5 = list[0];
-            if (md5.length > 2) {
-              md5 = md5.substring(2, md5.length);
-            }
-            content = list[1];
+        if (expHash.matchAsPrefix(allContent) != null) {
+          String? strMatch = expHash.stringMatch(allContent);
+          if(strMatch!=null){
+            md5 = strMatch.substring(2, strMatch.length-2);
+            content = allContent.substring(strMatch.length);
           }
         }
         if (content != null) {
