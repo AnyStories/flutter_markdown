@@ -93,8 +93,9 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
       builder: (context) {
         return Stack(
           children: <Widget>[
-            GestureDetector(
-              onTap: () {
+            Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) {
                 _hideMenu();
                 debugPrint(
                     "widget.contentTapCallBack--${widget.contentTapCallBack}");
@@ -102,8 +103,10 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
                   widget.contentTapCallBack!(false);
                 }
               },
-              child: Container(
-                color: widget.barrierColor,
+              child: IgnorePointer(
+                child: Container(
+                  color: widget.barrierColor,
+                ),
               ),
             ),
             Center(
