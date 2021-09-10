@@ -78,6 +78,7 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
   OverlayEntry? _overlayEntry;
   CustomPopupMenuController? _controller;
   bool? showMenu;
+  bool contentTaped = false;
 
   _showMenu() {
     Widget arrow = ClipPath(
@@ -97,11 +98,7 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
               behavior: HitTestBehavior.translucent,
               onPointerDown: (_) {
                 _hideMenu();
-                debugPrint(
-                    "widget.contentTapCallBack--${widget.contentTapCallBack}");
-                if (widget.contentTapCallBack != null) {
-                  widget.contentTapCallBack!(false);
-                }
+                contentTaped = true;
               },
               child: IgnorePointer(
                 child: Container(
@@ -222,11 +219,12 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
         onTap: () {
           if (widget.pressType == PressType.singleClick) {
             _showMenu();
+            return;
           }
-          if (widget.contentTapCallBack != null) {
-            debugPrint("widget.contentTapCallBack onTap");
+          if (widget.contentTapCallBack != null && contentTaped != true) {
             widget.contentTapCallBack!(true);
           }
+          contentTaped = false;
         },
         onLongPress: () {
           if (widget.pressType == PressType.longPress) {
