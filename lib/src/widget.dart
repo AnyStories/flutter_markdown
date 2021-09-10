@@ -49,7 +49,7 @@ typedef Widget MarkdownBulletBuilder(int index, BulletStyle style);
 
 typedef ParagraphPressEditCallBack = Function(String md5, String content);
 
-typedef Widget CommentBubbleBuilder(String paragraphId);
+typedef Widget CommentBubbleBuilder(String paragraphId,String content);
 
 typedef LongPressCallBack = Function(String paragraphId);
 
@@ -453,7 +453,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
             inlineSpan,
             WidgetSpan(
                 child: widget.commentBubbleBuilder != null
-                    ? widget.commentBubbleBuilder!(paragraphId)
+                    ? widget.commentBubbleBuilder!(paragraphId,inlineSpan.toPlainText())
                     : Container())
           ]),
           textScaleFactor: styleSheet.textScaleFactor!,
