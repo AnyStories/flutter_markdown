@@ -53,7 +53,7 @@ class _TableElement {
 
 class ItemModel {
   String title;
-  IconData icon;
+  Widget icon;
 
   ItemModel(this.title, this.icon);
 }

@@ -49,7 +49,7 @@ typedef Widget MarkdownBulletBuilder(int index, BulletStyle style);
 
 typedef ParagraphPressEditCallBack = Function(String md5, String content);
 
-typedef Widget CommentBubbleBuilder(String paragraphId,String content);
+typedef Widget CommentBubbleBuilder(String paragraphId, String content);
 
 typedef LongPressCallBack = Function(String paragraphId);
 
@@ -147,36 +147,37 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// Creates a widget that parses and displays Markdown.
   ///
   /// The [data] argument must not be null.
-  const MarkdownWidget(
-      {Key? key,
-      this.data,
-      this.nodes,
-      this.selectable = false,
-      this.styleSheet,
-      this.styleSheetTheme = MarkdownStyleSheetBaseTheme.material,
-      this.syntaxHighlighter,
-      this.onTapLink,
-      this.longPressCallback,
-      this.onTapText,
-      this.imageDirectory,
-      this.blockSyntaxes,
-      this.inlineSyntaxes,
-      this.extensionSet,
-      this.imageBuilder,
-      this.checkboxBuilder,
-      this.bulletBuilder,
-      this.builders = const {},
-      this.fitContent = false,
-      this.bottomView,
-      this.selectedBackgroundColor = Colors.transparent,
-      this.listItemCrossAxisAlignment =
-          MarkdownListItemCrossAxisAlignment.baseline,
-      this.highLightStyle,
-      this.paragraphPressEditCallBack,
-      this.commentBubbleBuilder,
-      this.contentTapCallBack,
-      this.longPressCallBack})
-      : assert(data != null || nodes != null),
+  const MarkdownWidget({
+    Key? key,
+    this.data,
+    this.nodes,
+    this.selectable = false,
+    this.styleSheet,
+    this.styleSheetTheme = MarkdownStyleSheetBaseTheme.material,
+    this.syntaxHighlighter,
+    this.onTapLink,
+    this.longPressCallback,
+    this.onTapText,
+    this.imageDirectory,
+    this.blockSyntaxes,
+    this.inlineSyntaxes,
+    this.extensionSet,
+    this.imageBuilder,
+    this.checkboxBuilder,
+    this.bulletBuilder,
+    this.builders = const {},
+    this.fitContent = false,
+    this.bottomView,
+    this.selectedBackgroundColor = Colors.transparent,
+    this.listItemCrossAxisAlignment =
+        MarkdownListItemCrossAxisAlignment.baseline,
+    this.highLightStyle,
+    this.paragraphPressEditCallBack,
+    this.commentBubbleBuilder,
+    this.contentTapCallBack,
+    this.longPressCallBack,
+    this.menuItemModels,
+  })  : assert(data != null || nodes != null),
         assert(selectable != null),
         super(key: key);
 
@@ -201,6 +202,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   ///
   /// Defaults to false.
   final bool selectable;
+
+  final List<ItemModel>? menuItemModels;
 
   /// The styles to use when displaying the Markdown.
   ///
@@ -390,11 +393,19 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
   Widget build(BuildContext context) => widget.build(context, _children);
 
   final contentColor = Color(0xff333740).withOpacity(0.95);
-  List<ItemModel> menuItems = [
-    ItemModel('comment', Icons.edit),
-  ];
 
+  //TODO(huhuan): 扩展多个长按操作项，需要更改UI
   Widget _buildLongPressMenu({required Function onEditTap}) {
+    List<ItemModel> menuItems = widget.menuItemModels ??
+        [
+          ItemModel(
+              'comment',
+              Icon(
+                Icons.edit,
+                size: 20,
+                color: Colors.white,
+              )),
+        ];
     return ClipRRect(
       borderRadius: BorderRadius.circular(5),
       child: GestureDetector(
@@ -411,11 +422,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
                 SizedBox(
                   height: 4,
                 ),
-                Icon(
-                  menuItems[0].icon,
-                  size: 20,
-                  color: Colors.white,
-                ),
+                menuItems[0].icon,
                 Container(
                   margin: EdgeInsets.only(top: 2),
                   child: Text(
@@ -453,7 +460,8 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
             inlineSpan,
             WidgetSpan(
                 child: widget.commentBubbleBuilder != null
-                    ? widget.commentBubbleBuilder!(paragraphId,inlineSpan.toPlainText())
+                    ? widget.commentBubbleBuilder!(
+                        paragraphId, inlineSpan.toPlainText())
                     : Container())
           ]),
           textScaleFactor: styleSheet.textScaleFactor!,
@@ -476,7 +484,6 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
       verticalMargin: 0,
       menuVisibleChange: (visible) {
         debugPrint("menuVisibleChange--$visible");
-
         if (visible == true) {
           selectedMd5 = paragraphId;
           if (widget.longPressCallBack != null) {
@@ -607,6 +614,7 @@ class Markdown extends MarkdownWidget {
       CommentBubbleBuilder? commentBubbleBuilder,
       ContentTapCallBack? contentTapCallBack,
       LongPressCallBack? longPressCallBack,
+      List<ItemModel>? menuItemModels,
       Color? selectedBackgroundColor,
       this.padding = const EdgeInsets.all(16.0),
       this.controller,
@@ -635,6 +643,7 @@ class Markdown extends MarkdownWidget {
             builders: builders,
             listItemCrossAxisAlignment: listItemCrossAxisAlignment,
             bulletBuilder: bulletBuilder,
+            menuItemModels: menuItemModels,
             paragraphPressEditCallBack: paragraphPressEditCallBack,
             contentTapCallBack: contentTapCallBack,
             longPressCallBack: longPressCallBack,
