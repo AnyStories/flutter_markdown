@@ -191,7 +191,7 @@ class _CustomPopupMenuState extends State<CustomPopupMenu> {
     debugPrint("_controller$_controller");
     if (_controller == null) _controller = CustomPopupMenuController();
     _controller?.addListener(_updateView);
-    WidgetsBinding.instance?.addPostFrameCallback((call) {
+    WidgetsBinding.instance.addPostFrameCallback((call) {
       if (mounted) {
         _childBox = context.findRenderObject() as RenderBox?;
         _parentBox =
@@ -308,8 +308,8 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
       );
     }
     //去除刘海屏的安全区域
-    final top = WidgetsBinding.instance?.window.padding.top ?? 0;
-    final bottom = WidgetsBinding.instance?.window.padding.bottom ?? 0;
+    final top = WidgetsBinding.instance.window.padding.top ?? 0;
+    final bottom = WidgetsBinding.instance.window.padding.bottom ?? 0;
     if (anchorTopY - top >
         contentSize.height + arrowSize.height + verticalMargin) {
       menuPosition = _MenuPosition.topCenter;
