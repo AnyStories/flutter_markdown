@@ -308,8 +308,8 @@ class _MenuLayoutDelegate extends MultiChildLayoutDelegate {
       );
     }
     //去除刘海屏的安全区域
-    final top = WidgetsBinding.instance.window.padding.top ?? 0;
-    final bottom = WidgetsBinding.instance.window.padding.bottom ?? 0;
+    final top = WidgetsBinding.instance.window.padding.top;
+    final bottom = WidgetsBinding.instance.window.padding.bottom;
     if (anchorTopY - top >
         contentSize.height + arrowSize.height + verticalMargin) {
       menuPosition = _MenuPosition.topCenter;
