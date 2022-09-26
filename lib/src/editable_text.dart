@@ -2556,11 +2556,6 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       ),
       textCapitalization: widget.textCapitalization,
       keyboardAppearance: widget.keyboardAppearance,
-      autofillConfiguration: !needsAutofillConfiguration ? null : AutofillConfiguration(
-        uniqueIdentifier: autofillId,
-        autofillHints: widget.autofillHints?.toList(growable: false) ?? <String>[],
-        currentEditingValue: currentTextEditingValue,
-      ),
     );
   }
 
@@ -2587,7 +2582,7 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
 
   VoidCallback? _semanticsOnCut(TextSelectionControls? controls) {
     return widget.selectionEnabled && cutEnabled && _hasFocus && controls?.canCut(this) == true
-      ? () => controls!.handleCut(this)
+      ? () => controls!.handleCut(this, null)
       : null;
   }
 
@@ -2704,6 +2699,213 @@ class EditableTextState extends State<EditableText> with AutomaticKeepAliveClien
       withComposing: !widget.readOnly,
     );
   }
+
+  @override
+  void autofill(TextEditingValue newEditingValue) {
+    // TODO: implement autofill
+  }
+
+  @override
+  void copySelection(SelectionChangedCause cause) {
+    // TODO: implement copySelection
+  }
+
+  @override
+  void cutSelection(SelectionChangedCause cause) {
+    // TODO: implement cutSelection
+  }
+
+  @override
+  void debugAssertLayoutUpToDate() {
+    // TODO: implement debugAssertLayoutUpToDate
+  }
+
+  @override
+  void delete(SelectionChangedCause cause) {
+    // TODO: implement delete
+  }
+
+  @override
+  void deleteByLine(SelectionChangedCause cause) {
+    // TODO: implement deleteByLine
+  }
+
+  @override
+  void deleteByWord(SelectionChangedCause cause, [bool includeWhitespace = true]) {
+    // TODO: implement deleteByWord
+  }
+
+  @override
+  void deleteForward(SelectionChangedCause cause) {
+    // TODO: implement deleteForward
+  }
+
+  @override
+  void deleteForwardByLine(SelectionChangedCause cause) {
+    // TODO: implement deleteForwardByLine
+  }
+
+  @override
+  void deleteForwardByWord(SelectionChangedCause cause, [bool includeWhitespace = true]) {
+    // TODO: implement deleteForwardByWord
+  }
+
+  @override
+  void deleteToEnd(SelectionChangedCause cause) {
+    // TODO: implement deleteToEnd
+  }
+
+  @override
+  void deleteToStart(SelectionChangedCause cause) {
+    // TODO: implement deleteToStart
+  }
+
+  @override
+  void expandSelectionLeftByLine(SelectionChangedCause cause) {
+    // TODO: implement expandSelectionLeftByLine
+  }
+
+  @override
+  void expandSelectionRightByLine(SelectionChangedCause cause) {
+    // TODO: implement expandSelectionRightByLine
+  }
+
+  @override
+  void expandSelectionToEnd(SelectionChangedCause cause) {
+    // TODO: implement expandSelectionToEnd
+  }
+
+  @override
+  void expandSelectionToStart(SelectionChangedCause cause) {
+    // TODO: implement expandSelectionToStart
+  }
+
+  @override
+  void extendSelectionDown(SelectionChangedCause cause) {
+    // TODO: implement extendSelectionDown
+  }
+
+  @override
+  void extendSelectionLeft(SelectionChangedCause cause) {
+    // TODO: implement extendSelectionLeft
+  }
+
+  @override
+  void extendSelectionLeftByLine(SelectionChangedCause cause) {
+    // TODO: implement extendSelectionLeftByLine
+  }
+
+  @override
+  void extendSelectionLeftByWord(SelectionChangedCause cause, [bool includeWhitespace = true, bool stopAtReversal = false]) {
+    // TODO: implement extendSelectionLeftByWord
+  }
+
+  @override
+  void extendSelectionRight(SelectionChangedCause cause) {
+    // TODO: implement extendSelectionRight
+  }
+
+  @override
+  void extendSelectionRightByLine(SelectionChangedCause cause) {
+    // TODO: implement extendSelectionRightByLine
+  }
+
+  @override
+  void extendSelectionRightByWord(SelectionChangedCause cause, [bool includeWhitespace = true, bool stopAtReversal = false]) {
+    // TODO: implement extendSelectionRightByWord
+  }
+
+  @override
+  void extendSelectionUp(SelectionChangedCause cause) {
+    // TODO: implement extendSelectionUp
+  }
+
+  @override
+  void moveSelectionDown(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionDown
+  }
+
+  @override
+  void moveSelectionLeft(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionLeft
+  }
+
+  @override
+  void moveSelectionLeftByLine(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionLeftByLine
+  }
+
+  @override
+  void moveSelectionLeftByWord(SelectionChangedCause cause, [bool includeWhitespace = true]) {
+    // TODO: implement moveSelectionLeftByWord
+  }
+
+  @override
+  void moveSelectionRight(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionRight
+  }
+
+  @override
+  void moveSelectionRightByLine(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionRightByLine
+  }
+
+  @override
+  void moveSelectionRightByWord(SelectionChangedCause cause, [bool includeWhitespace = true]) {
+    // TODO: implement moveSelectionRightByWord
+  }
+
+  @override
+  void moveSelectionToEnd(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionToEnd
+  }
+
+  @override
+  void moveSelectionToStart(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionToStart
+  }
+
+  @override
+  void moveSelectionUp(SelectionChangedCause cause) {
+    // TODO: implement moveSelectionUp
+  }
+
+  @override
+  // TODO: implement obscureText
+  bool get obscureText => throw UnimplementedError();
+
+  @override
+  Future<void> pasteText(SelectionChangedCause cause) {
+    // TODO: implement pasteText
+    throw UnimplementedError();
+  }
+
+  @override
+  // TODO: implement readOnly
+  bool get readOnly => throw UnimplementedError();
+
+  @override
+  void selectAll(SelectionChangedCause cause) {
+    // TODO: implement selectAll
+  }
+
+  @override
+  // TODO: implement selectionEnabled
+  bool get selectionEnabled => throw UnimplementedError();
+
+  @override
+  void setSelection(TextSelection nextSelection, SelectionChangedCause cause) {
+    // TODO: implement setSelection
+  }
+
+  @override
+  void setTextEditingValue(TextEditingValue newValue, SelectionChangedCause cause) {
+    // TODO: implement setTextEditingValue
+  }
+
+  @override
+  // TODO: implement textLayoutMetrics
+  TextLayoutMetrics get textLayoutMetrics => throw UnimplementedError();
 }
 
 class _Editable extends LeafRenderObjectWidget {
