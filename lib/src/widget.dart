@@ -514,31 +514,32 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
 ///  * <https://github.github.com/gfm/>
 class MarkdownBody extends MarkdownWidget {
   /// Creates a non-scrolling widget that parses and displays Markdown.
-  const MarkdownBody({
-    Key? key,
-    String? data,
-    List<md.Node>? nodes,
-    bool selectable = false,
-    MarkdownStyleSheet? styleSheet,
-    MarkdownStyleSheetBaseTheme? styleSheetTheme,
-    SyntaxHighlighter? syntaxHighlighter,
-    MarkdownTapLinkCallback? onTapLink,
-    VoidCallback? onTapText,
-    String? imageDirectory,
-    List<md.BlockSyntax>? blockSyntaxes,
-    List<md.InlineSyntax>? inlineSyntaxes,
-    md.ExtensionSet? extensionSet,
-    MarkdownImageBuilder? imageBuilder,
-    MarkdownCheckboxBuilder? checkboxBuilder,
-    MarkdownBulletBuilder? bulletBuilder,
-    CommentBubbleBuilder? commentBubbleBuilder,
-    Map<String, MarkdownElementBuilder> builders = const {},
-    MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
-        MarkdownListItemCrossAxisAlignment.baseline,
-    this.shrinkWrap = true,
-    this.fitContent = true,
-    this.selectedBackgroundColor = Colors.transparent,
-  }) : super(
+  const MarkdownBody(
+      {Key? key,
+      String? data,
+      List<md.Node>? nodes,
+      bool selectable = false,
+      MarkdownStyleSheet? styleSheet,
+      MarkdownStyleSheetBaseTheme? styleSheetTheme,
+      SyntaxHighlighter? syntaxHighlighter,
+      MarkdownTapLinkCallback? onTapLink,
+      VoidCallback? onTapText,
+      String? imageDirectory,
+      List<md.BlockSyntax>? blockSyntaxes,
+      List<md.InlineSyntax>? inlineSyntaxes,
+      md.ExtensionSet? extensionSet,
+      MarkdownImageBuilder? imageBuilder,
+      MarkdownCheckboxBuilder? checkboxBuilder,
+      MarkdownBulletBuilder? bulletBuilder,
+      CommentBubbleBuilder? commentBubbleBuilder,
+      Map<String, MarkdownElementBuilder> builders = const {},
+      MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment =
+          MarkdownListItemCrossAxisAlignment.baseline,
+      this.shrinkWrap = true,
+      this.fitContent = true,
+      this.selectedBackgroundColor = Colors.transparent,
+      PressType pressType = PressType.longPress})
+      : super(
             key: key,
             data: data,
             nodes: nodes,
@@ -558,7 +559,8 @@ class MarkdownBody extends MarkdownWidget {
             listItemCrossAxisAlignment: listItemCrossAxisAlignment,
             bulletBuilder: bulletBuilder,
             commentBubbleBuilder: commentBubbleBuilder,
-            selectedBackgroundColor: selectedBackgroundColor);
+            selectedBackgroundColor: selectedBackgroundColor,
+            pressType: pressType);
 
   /// See [ScrollView.shrinkWrap]
   final bool shrinkWrap;
@@ -624,7 +626,8 @@ class Markdown extends MarkdownWidget {
       this.physics,
       this.shrinkWrap = false,
       this.alignment,
-      this.bottomView})
+      this.bottomView,
+      PressType pressType = PressType.longPress})
       : super(
             key: key,
             data: data,
@@ -653,7 +656,8 @@ class Markdown extends MarkdownWidget {
             commentBubbleBuilder: commentBubbleBuilder,
             selectedBackgroundColor:
                 selectedBackgroundColor ?? Colors.transparent,
-            bottomView: bottomView);
+            bottomView: bottomView,
+            pressType: pressType);
 
   /// The amount of space by which to inset the children.
   final EdgeInsets padding;
