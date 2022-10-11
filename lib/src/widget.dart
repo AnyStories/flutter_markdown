@@ -177,6 +177,7 @@ abstract class MarkdownWidget extends StatefulWidget {
     this.contentTapCallBack,
     this.longPressCallBack,
     this.menuItemModels,
+    this.pressType = PressType.longPress,
   })  : assert(data != null || nodes != null),
         assert(selectable != null),
         super(key: key);
@@ -277,6 +278,8 @@ abstract class MarkdownWidget extends StatefulWidget {
   /// Defaults to [MarkdownListItemCrossAxisAlignment.baseline], which
   /// does not allow for intrinsic height measurements.
   final MarkdownListItemCrossAxisAlignment listItemCrossAxisAlignment;
+
+  final PressType pressType;
 
   /// Subclasses should override this function to display the given children,
   /// which are the parsed representation of [data].
@@ -479,7 +482,7 @@ class _MarkdownWidgetState extends State<MarkdownWidget>
         });
       },
       barrierColor: Colors.transparent,
-      pressType: PressType.longPress,
+      pressType: widget.pressType,
       arrowColor: contentColor,
       verticalMargin: 0,
       menuVisibleChange: (visible) {
